@@ -1,8 +1,11 @@
+import logging
+
 import numpy as np
 import pandas as pd
 
 class KNN:
     def __init__(self, classes, train_df, k, distance = None, verbose = False):
+        logging.debug('Creating KNN...')
         self.verbose = verbose
         self.points = train_df
         self.classes = classes

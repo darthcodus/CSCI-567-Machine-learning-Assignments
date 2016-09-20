@@ -1,4 +1,6 @@
+from __future__ import print_function
 from contextlib import contextmanager
+import logging
 import os
 import sys
 
@@ -33,11 +35,12 @@ DEBUG = True
 OUTPUT_FOLDER = "."
 
 @contextmanager
-def open_output_file(classifier):
-    with open(os.path.join(OUTPUT_FOLDER, "%s" % (classifier))) as f:
+def open_output_file(fname):
+    with open(os.path.join(OUTPUT_FOLDER, "%s.txt" % fname), 'w') as f:
         yield f
 
 def main(): # TODO: test with user input, confirm input with TAs
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if DEBUG else logging.INFO)
     trainingData = "data/train.txt"
     testingData = "data/test.txt"
     if len(sys.argv) > 1:
@@ -67,12 +70,14 @@ def main(): # TODO: test with user input, confirm input with TAs
         for order in (1,2): # order of the norm
             print("Running KNN of order %d on test set with L-%d norm" % (k, order))
             knn = KNN(train_df.iloc[:,-1], train_df.iloc[:, 1:-1], k, distance = lambda a,b: np.linalg.norm(a-b, ord = order))
-            for title, filename, data, leave_one_out in ("TEST", ("knn_%d_l%d_test" % (k, order), test_df, False), ("TRAIN", "knn_%d_l%d_train" % (k, order), train_df, True)):
+            for title, filename, data, leave_one_out in (("TEST", "knn_%d_l%d_test" % (k, order), test_df, False), ("TRAIN", "knn_%d_l%d_train" % (k, order), train_df, True)):
+
                 with open_output_file(filename) as f:
                     f.write("#index,predicted_class,actual_class")
                     total = 0
                     correct = 0
                     for row in data:
+                        logging.debug("Classifying")
                         predicted = knn.classify(row[1:-1], leave_one_out)
                         actual = row[-1]
                         f.write("%d,%d,%d" % (row[0], predicted, actual))
