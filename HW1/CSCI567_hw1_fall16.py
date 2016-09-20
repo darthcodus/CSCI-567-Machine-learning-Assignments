@@ -57,8 +57,8 @@ def main(): # TODO: test with user input, confirm input with TAs
     print("No. of features usable for classifcation: ", len(train_df.iloc[0])-2)
     print("Size of training data", len(train_df))
     print("Size of testing data", len(test_df))
-
-    print("No. of unique classes: ", train_df['type'].unique())
+    print("No. of unique classes: ", 7)
+    print("Unique classes represented in training data: ", train_df['type'].unique())
     print("\t(Histogram of classes in figure 1)")
         # plot class histogram
     train_df.hist('type')
