@@ -70,22 +70,20 @@ def main(): # TODO: test with user input, confirm input with TAs
         for order in (1,2): # order of the norm
             print("Running KNN of order %d on test set with L-%d norm" % (k, order))
             knn = KNN(train_df.iloc[:,-1], train_df.iloc[:, 1:-1], k, distance = lambda a,b: np.linalg.norm(a-b, ord = order))
-            for title, filename, data, leave_one_out in (("TEST", "knn_%d_l%d_test" % (k, order), test_df, False), ("TRAIN", "knn_%d_l%d_train" % (k, order), train_df, True)):
-
+            for title, filename, data, leave_one_out in ( ("TEST", "knn_%d_l%d_test" % (k, order), test_df, False), ("TRAIN", "knn_%d_l%d_train" % (k, order), train_df, True) ):
                 with open_output_file(filename) as f:
-                    f.write("#index,predicted_class,actual_class")
+                    f.write("#index,predicted_class,actual_class\n")
                     total = 0
                     correct = 0
-                    for row in data:
-                        logging.debug("Classifying")
+                    for row in data.values:
                         predicted = knn.classify(row[1:-1], leave_one_out)
                         actual = row[-1]
-                        f.write("%d,%d,%d" % (row[0], predicted, actual))
+                        f.write("%d,%d,%d\n" % (row[0], predicted, actual))
                         total += 1
                         if actual == predicted:
                             correct += 1
-                    accstr = "Accuracy on %s data: " % title, float(correct)/total
-                    f.write(accstr)
+                    accstr = "Accuracy on %s data: %f" % (title, float(correct)/total)
+                    f.write(accstr+"\n")
                     print(accstr)
 
     # gb = GaussianBayesClassifier(train_df.iloc[:, 1], train_df.iloc[:, 1:-1], DEBUG)
