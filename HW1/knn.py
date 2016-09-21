@@ -22,8 +22,6 @@ class KNN:
     def classify(self, orig_point, leave_one_out = False):
         point = orig_point
         if self.normalize_data:
-            if leave_one_out:
-                raise Exception("Leave one out doesn't work with normalize_data for now...")
             point = self._get_normalized_data(orig_point)
         if self.verbose:
             print("Classifying: (%d,%d)" %(int(orig_point[0]), int(orig_point[1])))

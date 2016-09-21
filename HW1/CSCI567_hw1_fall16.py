@@ -31,7 +31,7 @@ import numpy as np
 # 4. The class distrubution histogram (Figure 1) shows the class distribution.
     # Class 2 is the majority class. No, the distribution is not uniform
 
-DEBUG = True
+DEBUG = False
 OUTPUT_FOLDER = "."
 
 @contextmanager
@@ -69,7 +69,7 @@ def main(): # TODO: test with user input, confirm input with TAs
     for k in (1, 3, 5, 7):
         for order in (1,2): # order of the norm
             print("Running KNN of order %d on test set with L-%d norm" % (k, order))
-            knn = KNN(train_df.iloc[:,-1], train_df.iloc[:, 1:-1], k, distance = lambda a,b: np.linalg.norm(a-b, ord = order))
+            knn = KNN(train_df.iloc[:,-1], train_df.iloc[:, 1:-1], k, distance = lambda a,b: np.linalg.norm(a-b, ord = order), normalize_data=True)
             for title, filename, data, leave_one_out in ( ("TEST", "knn_%d_l%d_test" % (k, order), test_df, False), ("TRAIN", "knn_%d_l%d_train" % (k, order), train_df, True) ):
                 with open_output_file(filename) as f:
                     f.write("#index,predicted_class,actual_class\n")
