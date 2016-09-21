@@ -19,13 +19,14 @@ class KNN:
             self.distance = distance
         # self.cache = []
 
-    def classify(self, point, leave_one_out = False):
+    def classify(self, orig_point, leave_one_out = False):
+        point = orig_point
         if self.normalize_data:
             if leave_one_out:
                 raise Exception("Leave one out doesn't work with normalize_data for now...")
-            point = self._get_normalized_data(point)
+            point = self._get_normalized_data(orig_point)
         if self.verbose:
-            print("Classifying: (%d,%d)" %(int(point[0]), int(point[1])))
+            print("Classifying: (%d,%d)" %(int(orig_point[0]), int(orig_point[1])))
             print("Normalized point: (%f,%f)" %(float(point[0]), float(point[1])))
         dist_idx_pairs = [[None,idx] for idx in xrange(0,len(self.training_data["normalized_points"]))]
         distances = self.training_data["normalized_points"].apply(lambda training_point: self.distance(training_point, point), axis = 1)
