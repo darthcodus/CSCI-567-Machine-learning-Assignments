@@ -24,6 +24,9 @@ class KNN:
             if leave_one_out:
                 raise Exception("Leave one out doesn't work with normalize_data for now...")
             point = self._get_normalized_data(point)
+        if self.verbose:
+            print("Classifying: (%d,%d)" %(int(point[0]), int(point[1])))
+            print("Normalized point: (%f,%f)" %(float(point[0]), float(point[1])))
         dist_idx_pairs = [[None,idx] for idx in xrange(0,len(self.training_data["normalized_points"]))]
         distances = self.training_data["normalized_points"].apply(lambda training_point: self.distance(training_point, point), axis = 1)
         # print(distances)
@@ -65,28 +68,22 @@ class KNN:
         return max(counts, key=lambda x: counts[x])
 
     def _find_means_and_stddev(self, df):
-        self.means_col = []
-        self.std_devs_col = []
-        for i in range(0, len(df.iloc[0])):
-            total = df.iloc[:, i].astype(float).sum()
-            mean = float(total )/ len(df)
-            std_dev = df.iloc[:, i].apply(lambda x: math.sqrt((x-mean)*(x-mean))).sum() / (len(df) - 1)
-            if self.verbose:
-                print("Sum of column %d: %d" % (i, total))
-                print("N: %d" % len(df))
-                print("Mean: %f" % mean)
-                print("Standard deviation: %f" % std_dev)
-            self.means_col.append(mean)
-            self.std_devs_col.append(std_dev)
+        self.means_col = df.mean(0)
+        self.std_devs_col = df.std(0)
+        return
 
     def _get_normalized_data(self, df):
         if self.means_col is None or self.std_devs_col is None:
             self._find_means_and_stddev(df)
-        df_new = df.copy()
         if type(df) is not pandas.core.frame.DataFrame:
+            df_new = []
             for i in range(0,len(df)):
-                df_new[i] = (df[i]-self.means_col[i])/self.std_devs_col[i]
+                df_new.append((df[i]-self.means_col[i])/self.std_devs_col[i])
         else:
+            return (df - df.mean()) / (df.std())
+            """
+            df_new = df.copy()
             for i in range(0, len(df.iloc[0])):
                 df_new.iloc[:, i] = df.iloc[:, i].apply(lambda x: (x-self.means_col[i])/self.std_devs_col[i])
+            """
         return df_new
