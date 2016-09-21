@@ -65,6 +65,7 @@ def main(): # TODO: test with user input, confirm input with TAs
     plt.title("Figure 1: Class (glass type) Histogram")
     # /Data stats
 
+    """
     # Run KNN for k = 1, 3, 5, 7 and L1 & L2 norms on training (leave one out) and test sets
     for k in (1, 3, 5, 7):
         for order in (1,2): # order of the norm
@@ -85,8 +86,30 @@ def main(): # TODO: test with user input, confirm input with TAs
                     accstr = "Accuracy on %s data: %f" % (title, float(correct)/total)
                     f.write(accstr+"\n")
                     print(accstr)
+    """
+    print("\n******************************** Running gaussian naive baye's classifer ********************************")
+    gb = GaussianBayesClassifier(DEBUG)
+    print("Training classifier...")
+    gb.train(train_df.iloc[:, 1:])
+    print("Training complete")
+    # print("Params:")
+    for title, filename, data in ( ("test", "bayes_test.txt", test_df), ("train", "bayes_train", train_df) ):
+        with open_output_file(filename) as f:
+            print("Running on %sing data" % title)
+            f.write("#index,predicted_class,actual_class\n")
+            categories = gb.classify(data.iloc[:, 1:-1])
+            total = 0
+            correct = 0
+            for idx, predicted_category in enumerate(categories):
+                actual = data.iloc[idx, -1]
+                if predicted_category == actual:
+                    correct += 1
+                total += 1
+                f.write("%d,%d,%d\n" % (data.iloc[idx, 0], predicted_category, actual))
+            accstr = "Accuracy on %s data: %f" % (title, float(correct)/total)
+            f.write(accstr+"\n")
+            print(accstr)
 
-    # gb = GaussianBayesClassifier(train_df.iloc[:, 1], train_df.iloc[:, 1:-1], DEBUG)
     # plt.show()
 
 if __name__ == "__main__":
