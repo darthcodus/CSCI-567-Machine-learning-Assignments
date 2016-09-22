@@ -65,11 +65,11 @@ def main(): # TODO: test with user input, confirm input with TAs
     plt.title("Figure 1: Class (glass type) Histogram")
     # /Data stats
 
-    """
+    print("\n******************************** Running KNN classifer ********************************")
     # Run KNN for k = 1, 3, 5, 7 and L1 & L2 norms on training (leave one out) and test sets
     for k in (1, 3, 5, 7):
         for order in (1,2): # order of the norm
-            print("Running KNN of order %d on test set with L-%d norm" % (k, order))
+            print("Running KNN of order %d with L-%d norm" % (k, order))
             knn = KNN(train_df.iloc[:,-1], train_df.iloc[:, 1:-1], k, distance = lambda a,b: np.linalg.norm(a-b, ord = order), normalize_data=True)
             for title, filename, data, leave_one_out in ( ("TEST", "knn_%d_l%d_test" % (k, order), test_df, False), ("TRAIN", "knn_%d_l%d_train" % (k, order), train_df, True) ):
                 with open_output_file(filename) as f:
@@ -86,9 +86,9 @@ def main(): # TODO: test with user input, confirm input with TAs
                     accstr = "Accuracy on %s data: %f" % (title, float(correct)/total)
                     f.write(accstr+"\n")
                     print(accstr)
-    """
+
     print("\n******************************** Running gaussian naive baye's classifer ********************************")
-    gb = GaussianBayesClassifier(DEBUG)
+    gb = GaussianBayesClassifier(sigma_depends_on_class=True, verbose = DEBUG)
     print("Training classifier...")
     gb.train(train_df.iloc[:, 1:])
     print("Training complete")
@@ -110,6 +110,30 @@ def main(): # TODO: test with user input, confirm input with TAs
             f.write(accstr+"\n")
             print(accstr)
 
+    print("\n******************************** Running gaussian naive baye's classifer (with sigma independent of class) ********************************")
+    gb = GaussianBayesClassifier(sigma_depends_on_class=False, verbose = DEBUG)
+    print("Training classifier...")
+    gb.train(train_df.iloc[:, 1:])
+    print("Training complete")
+    # print("Params:")
+    for title, filename, data in ( ("test", "bayes_test_sigmaindependent.txt", test_df), ("train", "bayes_train_sigmaindependent", train_df) ):
+        with open_output_file(filename) as f:
+            print("Running on %sing data" % title)
+            f.write("#index,predicted_class,actual_class\n")
+            categories = gb.classify(data.iloc[:, 1:-1])
+            total = 0
+            correct = 0
+            for idx, predicted_category in enumerate(categories):
+                actual = data.iloc[idx, -1]
+                if predicted_category == actual:
+                    correct += 1
+                total += 1
+                f.write("%d,%d,%d\n" % (data.iloc[idx, 0], predicted_category, actual))
+            accstr = "Accuracy on %s data: %f" % (title, float(correct)/total)
+            f.write(accstr+"\n")
+            print(accstr)
+
+    print("\n******************************** Showing class histogram ********************************")
     plt.show()
 
 if __name__ == "__main__":
