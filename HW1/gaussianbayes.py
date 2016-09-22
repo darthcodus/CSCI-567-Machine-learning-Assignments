@@ -4,7 +4,7 @@ import pickle
 import pandas as pd
 
 class GaussianBayesClassifier:
-    def __init__(self, verbose = False):
+    def __init__(self, sigma_depends_on_class = True, verbose = False):
         self.verbose = verbose
         self.u_kj = {}
         self.sig_kj = {}
@@ -12,6 +12,7 @@ class GaussianBayesClassifier:
         self.n = 0 # total sample count
         self.nc = {} # Per class sample count
         self.classes = None
+        self.sigma_depends_on_class = sigma_depends_on_class
 
     def train(self, train_df):
         """
@@ -35,7 +36,10 @@ class GaussianBayesClassifier:
                 if k not in self.sig_kj:
                     self.sig_kj[k] = []
                 self.u_kj[k].append(cat_col.iloc[:, j].mean())
-                self.sig_kj[k].append(cat_col.iloc[:, j].std(ddof=0))
+                if self.sigma_depends_on_class:
+                    self.sig_kj[k].append(cat_col.iloc[:, j].std(ddof=0))
+                else:
+                    self.sig_kj[k].append(train_df.iloc[:, j].std(ddof=0))
 
     def writeToFile(self, fname):
         pickle.dump(self, open(fname, "wb"))
