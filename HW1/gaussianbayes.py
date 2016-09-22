@@ -35,7 +35,7 @@ class GaussianBayesClassifier:
                 if k not in self.sig_kj:
                     self.sig_kj[k] = []
                 self.u_kj[k].append(cat_col.iloc[:, j].mean())
-                self.sig_kj[k].append(train_df.iloc[:, j].std(ddof=0)) # Making std independent of category gives better accuracy, why?
+                self.sig_kj[k].append(cat_col.iloc[:, j].std(ddof=0))
 
     def writeToFile(self, fname):
         pickle.dump(self, open(fname, "wb"))
@@ -51,6 +51,7 @@ class GaussianBayesClassifier:
             for j, xj in enumerate(feature_vector):
                 if self.sig_kj[category][j] == 0:
                     continue
+                scores[category] -= math.log(float(self.sig_kj[category][j]))
                 scores[category] -= math.pow(( (float(xj)-self.u_kj[category][j])/self.sig_kj[category][j] ), 2)
         return scores
 
