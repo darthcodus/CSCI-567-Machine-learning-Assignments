@@ -61,7 +61,7 @@ def main(): # TODO: test with user input, confirm input with TAs
     print("Unique classes represented in training data: ", train_df['type'].unique())
     print("\t(Histogram of classes in figure 1)")
         # plot class histogram
-    train_df.hist('type')
+    train_df.hist('type', alpha=.5, bins=7)
     plt.title("Figure 1: Class (glass type) Histogram")
     # /Data stats
 
@@ -110,7 +110,7 @@ def main(): # TODO: test with user input, confirm input with TAs
             f.write(accstr+"\n")
             print(accstr)
 
-    # plt.show()
+    plt.show()
 
 if __name__ == "__main__":
     main()
