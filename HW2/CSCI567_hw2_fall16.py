@@ -61,6 +61,16 @@ def main():
     print("No. of features usable for classifcation: ", len(train_df.iloc[0])-1)
     print("Size of training data: ", len(train_df))
     print("Size of testing data: ", len(test_df))
+    print("Histogram of attributes will be shown at the end of generating all results")
+
+    print("\nPearson correlations:")
+    target_col = col_names[-1]
+    for col in col_names:
+        if col.lower() == 'chas': # categorical. Also, see dtypes
+            continue
+        print("Correlation of %s with target(%s): %f" % (col, target_col, train_df[[col, target_col]].corr(method='pearson').iloc[0,1]))
+
+    print("\n******************************** Showing histogram of attributes********************************")
     Histogrammer.plot_histgram_of_features(train_df, 3, 5)
     plt.show()
     return
