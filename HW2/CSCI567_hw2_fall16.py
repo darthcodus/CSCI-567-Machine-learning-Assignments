@@ -9,8 +9,9 @@ import numpy as np
 import pandas as pd
 
 from datanormalizer import *
+from model_evaluator import ModelEvaluator
 from plots import Histogrammer
-from regression import LinearRegression
+from regression import LinearRegression, RidgeRegression
 
 """
     1. CRIM      per capita crime rate by town
@@ -76,19 +77,48 @@ def main():
     train_df_features_normalized = normalizer.get_normalized_data(train_df_features)
     test_df_features_normalized = normalizer.get_normalized_data(test_df_features)
 
-    regmodel = LinearRegression(train_df_features_normalized, train_df_targets)
-    avgerror = 0
-    meansquarederror = 0
-    for i, row in enumerate(test_df_features_normalized.values):
-        predicted = regmodel.predict(row)
-        actual = test_df_targets.iloc[i]
-        avgerror += predicted-actual
-        meansquarederror += (predicted-actual)**2
+    print("Linear regression")
+    regmodel = LinearRegression()
+    eval = ModelEvaluator(regmodel)
+    regmodel.train(train_df_features_normalized, train_df_targets)
+    trainingError = eval.mean_squared_error(train_df_features_normalized, train_df_targets)
+    print("Mean squared error on training data: %f" % trainingError)
+    print("Mean squared error on test data: %f" % eval.mean_squared_error(test_df_features_normalized, test_df_targets))
 
-    avgerror /= len(test_df_targets)
-    meansquarederror /= len(test_df_targets)
-    print("Mean error: %f" % avgerror)
-    print("Mean squared error: %f" % meansquarederror)
+    for lambdaval in (0.01, 0.1, 1.0):
+        regmodel = RidgeRegression(lambdaval)
+        eval = ModelEvaluator(regmodel)
+        regmodel.train(train_df_features_normalized, train_df_targets)
+        trainingError = eval.mean_squared_error(train_df_features_normalized, train_df_targets)
+        meansquarederror = eval.mean_squared_error(test_df_features_normalized, test_df_targets)
+        print("Mean squared error on training data: %f" % trainingError)
+        print("Mean squared error for ridge regression with lambda %f: %f" % (lambdaval, meansquarederror))
+
+    # 3.2 training ~20-22, testing: ~28
+    # 3.3 training ~23-25, testing ~30-33
+    lambdaval = 10
+    while lambdaval > 0:
+        # cross validation
+        for i in range(0,10):
+            chunksize = len(train_df)/10
+            test_df_cv = None
+            train_df_cv_targets = None
+            test_df_cv = None
+            test_df_cv_targets = None
+            test_df_cv = train_df_features_normalized.iloc[i*chunksize:i*chunksize+chunksize]
+            test_df_cv_targets = train_df_targets.iloc[i*chunksize:i*chunksize+chunksize]
+            train_df_cv = train_df_features_normalized.drop(train_df_features_normalized.index[i*chunksize:i*chunksize+chunksize])
+            train_df_cv_targets = train_df_targets.drop(train_df_targets.index[i*chunksize:i*chunksize+chunksize])
+            regmodel = RidgeRegression(lambdaval)
+            regmodel.train(train_df_cv, train_df_cv_targets)
+            eval = ModelEvaluator(regmodel)
+            cv_meansqaurederror = eval.mean_squared_error(test_df_cv, test_df_cv_targets)
+            test_meansquarederror = eval.mean_squared_error(test_df_features_normalized, test_df_targets)
+            print("Ridge regression model with lambda = %f" % lambdaval)
+            print("Cross validation test set error = %f" % cv_meansqaurederror)
+            print("Testing set error for lambda = %f" % meansquarederror)
+            lambdaval /= 10
+
     return
     print("\n******************************** Showing histogram of attributes********************************")
     Histogrammer.plot_histgram_of_features(train_df, 3, 5)
