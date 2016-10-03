@@ -20,19 +20,23 @@ class LinearRegression(object):
 
     def predict(self, x):
         assert self.w is not None
-        return np.dot(np.transpose(self.w),np.append(np.ones((1,)), x))
+        return np.dot(np.transpose(self.w), np.append(np.ones((1,)), x))
 
 class RidgeRegression(object):
     def __init__(self, lambdaval):
         self.lambdaval = lambdaval
 
     def train(self, df_train_features, df_train_targets):
-        x = df_train_features.values
-        xt = np.transpose(x)
+        x_aug = np.ones((len(df_train_features), len(df_train_features.iloc[0]) + 1))
+        x_aug[:,1:] = df_train_features.values
+        x_aug_t = np.transpose(x_aug)
+
+        x = x_aug
+        xt = x_aug_t
         xtx = np.dot(xt, x)
         lambdai = self.lambdaval*np.identity(len(xtx))
-        self.b = np.dot(np.dot( np.linalg.inv(np.add(xtx, lambdai)) , xt), df_train_targets.values)
+        self.b = np.dot(np.dot( np.linalg.inv(np.add(xtx, lambdai)), xt), df_train_targets.values)
 
     def predict(self, x):
         assert self.b is not None
-        return np.dot(np.transpose(self.b), x)
+        return np.dot(np.transpose(self.b), np.append(np.ones((1,)), x))
