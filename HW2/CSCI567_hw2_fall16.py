@@ -10,6 +10,7 @@ import pandas as pd
 
 from datanormalizer import *
 from plots import Histogrammer
+from regression import LinearRegression
 
 """
     1. CRIM      per capita crime rate by town
@@ -51,9 +52,10 @@ def main():
     test_df = train_df.iloc[::7, :]
     train_df.drop(train_df.index[::7], inplace=True)
 
-    normalizer = DataFrameStdNormalizer(train_df)
-    train_df_n = normalizer.get_normalized_data(train_df)
-    test_df_n = normalizer.get_normalized_data(test_df)
+    train_df_features = train_df.iloc[:, :-1]
+    train_df_targets = train_df.iloc[:, -1]
+    test_df_features = test_df.iloc[:, :-1]
+    test_df_targets = test_df.iloc[:, -1]
 
     # Data analysis
     print("Data analysis:")
@@ -70,8 +72,30 @@ def main():
             continue
         print("Correlation of %s with target(%s): %f" % (col, target_col, train_df[[col, target_col]].corr(method='pearson').iloc[0,1]))
 
+    normalizer = DataFrameStdNormalizer(train_df_features)
+    train_df_features_normalized = normalizer.get_normalized_data(train_df_features)
+    test_df_features_normalized = normalizer.get_normalized_data(test_df_features)
+
+    regmodel = LinearRegression(train_df_features_normalized, train_df_targets)
+    avgerror = 0
+    meansquarederror = 0
+    for i, row in enumerate(test_df_features_normalized.values):
+        predicted = regmodel.predict(row)
+        actual = test_df_targets.iloc[i]
+        avgerror += predicted-actual
+        meansquarederror += (predicted-actual)**2
+
+    avgerror /= len(test_df_targets)
+    meansquarederror /= len(test_df_targets)
+    print("Mean error: %f" % avgerror)
+    print("Mean squared error: %f" % meansquarederror)
+    return
     print("\n******************************** Showing histogram of attributes********************************")
     Histogrammer.plot_histgram_of_features(train_df, 3, 5)
+    print("\nClose window to terminate")
+    #plt.show(block=False) #.draw()
+    #plt.pause(0.001)
+    #raw_input("Press enter to continue")
     plt.show()
     return
 
