@@ -180,10 +180,7 @@ def main():
         print("Mean squared error on train data: %f" % eval.mean_squared_error(train_df_features[cols], train_df_targets))
     print("Mean squared error on test data: %f" % eval.mean_squared_error(test_df_features[cols], test_df_targets))
 
-    print("*******************iii. Max mutual information*****************")
-    # TODO
-
-    print("*********************iv. All 4 feature combinations*******************")
+    print("*********************iii. All 4 feature combinations*******************")
     bestcols = None
     besttrainmse = 999999
     regmodel = LinearRegression()
