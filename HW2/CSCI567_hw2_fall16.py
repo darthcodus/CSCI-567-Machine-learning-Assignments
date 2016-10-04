@@ -1,5 +1,7 @@
 from __future__ import print_function
 from contextlib import contextmanager
+import heapq
+import itertools
 import logging
 import os
 import sys
@@ -98,8 +100,6 @@ def main():
         print("")
 
     print("\n*********************Cross Validation*******************")
-    # 3.2 training ~20-22, testing: ~28
-    # 3.3 training ~23-25, testing ~30-33
     lambdaval = float(10.0)
 
     # Shuffle data
@@ -137,7 +137,88 @@ def main():
         print("Testing set error = %f" % (test_meansquarederror))
         print("")
 
-    return
+    print("\n*********************Feature Selection*******************")
+    print("*********************i. Max correlation*******************")
+    target_col = col_names[-1]
+    corr = {}
+    for col in col_names:
+        if col.lower() == 'chas': # categorical. Also, see dtypes
+            continue
+        corr[col] = abs(train_df[[col, target_col]].corr(method='pearson').iloc[0,1])
+    maxcorrcols = heapq.nlargest(5, corr, key=corr.get)[1:]
+    print("Selecting the following coluns with max correlation: ")
+    print(maxcorrcols)
+    train_df_features_normalized_maxcorr = train_df_features[maxcorrcols]
+    regmodel = LinearRegression()
+    regmodel.train(train_df_features_normalized_maxcorr, train_df_targets)
+    eval = ModelEvaluator(regmodel)
+    trainingError = eval.mean_squared_error(train_df_features[maxcorrcols], train_df_targets)
+    print("Mean squared error on training data: %f" % trainingError)
+    print("Mean squared error on test data: %f" % eval.mean_squared_error(test_df_features[maxcorrcols], test_df_targets))
+
+    print("*******************ii. Max correlation with residue*****************")
+    residue = train_df_targets.copy(deep=True)
+    cols = []
+    regmodel = LinearRegression()
+    eval = ModelEvaluator(regmodel)
+    for i in range(0, 4):
+        corr = {}
+        for col in col_names:
+            if col.lower() in ('medv', 'chas') or col in cols: # categorical. Also, see dtypes
+                continue
+            # corr[col] = train_df[[col]].corrwith(residue).iloc[0]
+            corr[col] = abs(pd.concat([train_df[[col]], residue], axis = 1).corr(method='pearson').iloc[0,1])
+        maxcorrcol = max(corr, key=corr.get)
+        cols.append(maxcorrcol)
+        print("Taking cols: %s" % maxcorrcol)
+        regmodel.train(train_df_features[cols], train_df_targets)
+        for i in range(0,len(residue)):
+            residue.at[residue.index[i]] = train_df_targets.iloc[i] - regmodel.predict(train_df_features[cols].iloc[i])
+        #trainingError = eval.mean_squared_error(train_df_features_normalized, train_df_targets)
+        #print("Mean squared error on training data: %f" % trainingError)
+        #print(cols)
+        print("Mean squared error on train data: %f" % eval.mean_squared_error(train_df_features[cols], train_df_targets))
+    print("Mean squared error on test data: %f" % eval.mean_squared_error(test_df_features[cols], test_df_targets))
+
+    print("*******************iii. Max mutual information*****************")
+    # TODO
+
+    print("*********************iv. All 4 feature combinations*******************")
+    bestcols = None
+    besttrainmse = 999999
+    regmodel = LinearRegression()
+    eval = ModelEvaluator(regmodel)
+    for cols in list(list(x) for x in itertools.combinations(train_df_features_normalized.columns, 4)):
+        regmodel.train(train_df_features_normalized[cols], train_df_targets)
+        mse_train = eval.mean_squared_error(train_df_features_normalized[cols], train_df_targets)
+        #print("Mean squared error on train data: %f" % )
+        #print("Mean squared error on test data: %f" % eval.mean_squared_error(train_df_features_normalized[cols], train_df_targets))
+        if mse_train < besttrainmse:
+            bestcols = cols
+            besttrainmse = mse_train
+    print("Best training MSE = %f for columns:" % besttrainmse)
+    print(bestcols)
+    regmodel.train(train_df_features_normalized[bestcols], train_df_targets)
+    print("Testing MSE of this model: %f" % eval.mean_squared_error(test_df_features_normalized[cols], test_df_targets))
+
+    print("\n*********************Feature Expansion*******************")
+    df_train_featuregen = train_df_features_normalized.copy(deep=True)
+    df_test_featuregen = test_df_features_normalized.copy(deep=True)
+    #i = 0
+    for cols in list(list(x) for x in itertools.combinations(train_df_features_normalized.columns, 2)) + [[col,col] for col in train_df_features_normalized.columns]:
+        #i += 1
+        #print("Gen %d: %s" % (i,cols[0]+cols[1]))
+        #df_train_featuregen[cols[0]+cols[1]] = df_train_featuregen.apply(lambda x: [[x[cols[0]], x[cols[1]]]], axis=1)
+        df_train_featuregen[cols[0]+cols[1]] = df_train_featuregen[cols[0]]*df_train_featuregen[cols[1]]
+        df_test_featuregen[cols[0]+cols[1]] = df_test_featuregen[cols[0]]*df_test_featuregen[cols[1]]
+        #df_test_featuregen[cols[0]+cols[1]] = df_test_featuregen.apply(lambda x: [[x[cols[0]], x[cols[1]]]], axis=1)
+    regmodel = LinearRegression()
+    regmodel.train(df_train_featuregen, train_df_targets)
+    eval = ModelEvaluator(regmodel)
+    trainingError = eval.mean_squared_error(df_train_featuregen, train_df_targets)
+    print("Mean squared error on training data: %f" % trainingError)
+    print("Mean squared error on test data: %f" % eval.mean_squared_error(df_test_featuregen, test_df_targets))
+
     print("\n******************************** Showing histogram of attributes********************************")
     Histogrammer.plot_histgram_of_features(train_df, 3, 5)
     print("\nClose window to terminate")
