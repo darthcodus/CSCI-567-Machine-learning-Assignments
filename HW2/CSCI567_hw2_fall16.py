@@ -108,13 +108,13 @@ def main():
     shuffled_train_df_targets = train_df.iloc[:, -1]
     shuffled_train_df_features_normalized = (DataFrameStdNormalizer(shuffled_train_df_features)).get_normalized_data(shuffled_train_df_features)
 
+    lambda_error_map = {}
     for i in range(0,6):
         lambdaval = float(10.0) / (10**i)
         # cross validation
-        #mean_cv_error = 0
+        mean_cv_error = 0
         regmodel = RidgeRegression(lambdaval)
         eval = ModelEvaluator(regmodel)
-        b = []
         for i in range(0,10):
             chunksize = len(train_df)/10
             test_df_cv = None
@@ -127,15 +127,20 @@ def main():
             train_df_cv = shuffled_train_df_features_normalized.drop(shuffled_train_df_features_normalized.index[i*chunksize:i*chunksize+chunksize])
             train_df_cv_targets = shuffled_train_df_targets.drop(shuffled_train_df_targets.index[i*chunksize:i*chunksize+chunksize])
             regmodel.train(train_df_cv, train_df_cv_targets)
-            b.append(regmodel.b)
-            #mean_cv_error += eval.mean_squared_error(test_df_cv, test_df_cv_targets)
-        regmodel.b = np.sum(b, axis = 0)/len(b)
-        test_meansquarederror = eval.mean_squared_error(test_df_features_normalized, test_df_targets)
-        print("Ridge regression model with lambda = %f" % lambdaval)
-        #print("Cross validation test set error = %f" % cv_meansqaurederror)
-        print("Training set error = %f" % (eval.mean_squared_error(train_df_features_normalized, train_df_targets)))
-        print("Testing set error = %f" % (test_meansquarederror))
-        print("")
+            #print(eval.mean_squared_error(test_df_cv, test_df_cv_targets))
+            mean_cv_error += eval.mean_squared_error(test_df_cv, test_df_cv_targets)
+        mean_cv_error /= 10
+        print("MSE for lambda %f = %f" % (lambdaval, mean_cv_error))
+        lambda_error_map[lambdaval] = mean_cv_error
+
+    lambdabest = min(lambda_error_map, key=lambda_error_map.get)
+    print("Lowest MSE for lambda = %f" % lambdabest)
+    regmodel = RidgeRegression(lambdabest)
+    regmodel.train(train_df_features_normalized, train_df_targets)
+    eval = ModelEvaluator(regmodel)
+    test_meansquarederror = eval.mean_squared_error(test_df_features_normalized, test_df_targets)
+    print("Test error for model with lambda %f = %f" % (lambdabest, test_meansquarederror))
+    print("")
 
     print("\n*********************Feature Selection*******************")
     print("*********************i. Max correlation*******************")
