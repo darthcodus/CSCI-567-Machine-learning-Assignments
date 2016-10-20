@@ -1,1 +1,2 @@
-from svmutil import *
+from .svm import *
+from .svmutil import *
