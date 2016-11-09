@@ -55,6 +55,10 @@ def main():
             ax = ax = axs[i][j]
             dataset_dataframe.plot(kind='scatter', x='f1', y='f2', c=[get_color(i) for i in cluster_assignments], ax=ax)
             ax.title.set_text("%d clusters" % num_clusters)
+
+            for k in range(0, len(centroids)):
+                ax.scatter(centroids[k][0], centroids[k][1], c=get_color(k), marker='x', s=200)
+
             print()
     plt.show()
 

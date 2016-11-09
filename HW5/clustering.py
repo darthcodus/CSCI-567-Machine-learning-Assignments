@@ -94,5 +94,6 @@ class KMeans(object):
                 print("\nFinished clustering. Final j:%f" % j)
                 print("Assignments: ")
                 print(self.cluster_assignments)
+                assert len(self.centroids) == self.num_clusters
                 return self.centroids, self.cluster_assignments
             old_assignments = self.cluster_assignments
