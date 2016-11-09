@@ -6,6 +6,7 @@ import logging
 import math
 import os
 import sys
+import time
 
 from model_evaluator import ModelEvaluator
 from regression import KernelizedLinearRegression
@@ -44,7 +45,7 @@ def plot_histgram(df, rows, cols, plot_name, title):
     for i in range(0, len(df)):
         ax = axs[int(i/cols)][i%cols]
         #df.iloc[0].hist(alpha=.5, bins=number_of_bins, ax=ax)
-        bins = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 10000]
+        bins = [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700]
         rwidths = [1] * (len(bins) - 1)
         rwidths[-1] = 1/(float(bins[-1])/50)
         #ax.hist(df.iloc[0].values, bins=bins, rwidth = rwidths)
@@ -71,6 +72,7 @@ def main():
     g_x_list.append(lambda xi: [1, xi, xi*xi, xi*xi*xi]) #g5
     g_x_list.append(lambda xi: [1, xi, xi*xi, xi*xi*xi, xi*xi*xi*xi]) #g6
 
+    pretty_print_header("Bias Variance Trade-off")
     pretty_print_header("Generating datasets")
     datasets_10 = []
     datasets_100 = []
@@ -122,8 +124,9 @@ def main():
         # print(mses_g[0])
         # print(mses_g[1])
         plot_histgram(pd.DataFrame(mses_g), 2, 3, "g", title)
-    #plt.show()
+    plt.show()
 
+    pretty_print_header("Linear and Kernel SVM")
     train_data = loadmat('data/phishing-train.mat')
     test_data = loadmat('data/phishing-test.mat')
     train_features = train_data['features']
@@ -150,22 +153,39 @@ def main():
     test_df_features = df_others.join(df_cat_test[df_cat_train.columns])
 
     # Feed to svmutil
-    for c in range(-6, 4):
+    start = time.clock()
+    crange = range(-6, 3)
+    for c in crange:
         print("Evaluating svm for c=4^%d"%c)
-        #prob = svm_problem(train_df_labels.values, train_df_features.values)
-        #print(train_labels)
-        #print(len(train_df_labels.values.tolist()))
-        #print(len(train_df_features.values.tolist()))
-        #print(train_df_features.values.tolist())
-        #print(np.transpose(train_labels).tolist())
-        #print(train_labels.tolist()[0])
-        #m = svm_train(np.transpose(train_df_labels.applymap(float).values).tolist(), train_df_features.values.tolist(), '-c %f -v 3' % c)
         m = svm_train(train_labels.tolist()[0], train_df_features.values.tolist(), '-c %f -v 3' % math.pow(4,c))
+    print("Average training time=%fs" % ((time.clock() - start)/len(crange)))
 
-    svm_save_model('heart_scale.model', m)
+    crange = range(-3,8)
+    degrees = (1,2,3)
+    start = time.clock()
+    for c in crange:
+        for degree in degrees:
+            print("Evaluating svm for c=4^%d"%c)
+            print("Degree = %d" % degree)
+            m = svm_train(train_labels.tolist()[0], train_df_features.values.tolist(), '-t %d -c %f -v 3 -d %d' % (1, math.pow(4,c), degree))
+    print("Average training time=%fs" % ((time.clock() - start)/(len(crange)*len(degrees))))
+
+    gammedegrees = range(-7, -1)
+    start = time.clock()
+    for c in crange:
+        for degree in gammedegrees:
+            print("Evaluating svm for c=4^%d"%c)
+            print("Gamme = %f" % math.pow(4,degree))
+            m = svm_train(train_labels.tolist()[0], train_df_features.values.tolist(), '-t %d -c %f -v 3 -g %f' % (2, math.pow(4,c), math.pow(4,degree)))
+    print("Average training time=%fs" % ((time.clock() - start)/(len(crange)*len(degrees))))
     #m = svm_load_model('heart_scale.model')
     #p_label, p_acc, p_val = svm_predict(y, x, m, '-b 1')
     #ACC, MSE, SCC = evaluations(y, p_label)
 
+    #m = svm_train(train_labels.tolist()[0], train_df_features.values.tolist(), '-t %d -c %f -v 3 -g %f' % (2, math.pow(4,c), math.pow(4,degree)))
+    m = svm_train(train_labels.tolist()[0], train_df_features.values.tolist(), '-t %d -c %f -g %f' % (2, math.pow(4,2), math.pow(4,-2)))
+    p_labs, p_acc, p_vals = svm_predict(test_labels.tolist()[0], test_df_features.values.tolist(), m)
+    print(p_acc)
+    print("Best performing model: rbf-kernel svm with c=4^2, gamma = -2")
 if __name__ == "__main__":
     main()
