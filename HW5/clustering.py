@@ -1,17 +1,15 @@
 import numpy as np
 import pandas as pd
 
+import utils
+
 class KMeans(object):
     def __init__(self, num_clusters, df):
         assert num_clusters > 1 and df is not None
         self.num_clusters = num_clusters
         self.df = df
-
-        self.centroids = []
-        point_gen = self._get_random_point_in_input_range()
-        for i in range(0, num_clusters):
-            self.centroids.append(next(point_gen))
-
+        self.cluster_assignments = None
+        self.centroids = utils.get_n_points_in_range(num_clusters, len(self.df.columns), self.df.min(axis=0).values, self.df.max(axis=0).values)
         """
         import random
         for i in range(0, num_clusters):
@@ -19,41 +17,26 @@ class KMeans(object):
             self.centroids[i] = df.values[pidx]
         """
 
-        self.cluster_assignments = None
-
-    def _get_random_point_in_input_range(self, d=None, minvals=None, maxvals=None):
-        if d is None:
-            d = len(self.df.columns)
-        if maxvals is None:
-            maxvals = self.df.max(axis=0).values
-        if minvals is None:
-            minvals = self.df.min(axis=0).values
-        while True:
-            point = []
-            for f in range(0, d):
-                point.append(np.random.uniform(minvals[f], maxvals[f]))
-            yield point
-
-    def _get_diff_l2_norm(self, v1, v2):
-        return np.linalg.norm(np.subtract(v1, v2))
+    def _get_diff_norm(self, v1, v2, order=2):
+        return np.linalg.norm(np.subtract(v1, v2), ord=order)
 
     def _get_j(self, centroids, cluster_assigments):
         j = 0.0
         for n, point in enumerate(self.df.values):
             for k in range(0, self.num_clusters):
                 if cluster_assigments[n] == k:
-                    j += self._get_diff_l2_norm(point, centroids[k])
+                    j += self._get_diff_norm(point, centroids[k])
         return j
 
     def _get_cluster_assignments(self, centroids):
         cluster_assignments = [-1] * len(self.df)
         for i, point in enumerate(self.df.values):
-            mind = self._get_diff_l2_norm(point, centroids[0])
+            mind = self._get_diff_norm(point, centroids[0])
             cluster_assignments[i] = 0
             for j, uk in enumerate(centroids):
                 if j == 0:
                     continue
-                d = self._get_diff_l2_norm(point, uk)
+                d = self._get_diff_norm(point, uk)
                 if d < mind:
                     mind = d
                     cluster_assignments[i] = j
@@ -73,7 +56,7 @@ class KMeans(object):
                 centroids[cluster] = centroids[cluster]/count
             else:
                 # randomly initializing again
-                centroids[cluster] = next(self._get_random_point_in_input_range())
+                centroids[cluster] = utils.get_random_point_in_range(len(self.df.columns), self.df.min(axis=0).values, self.df.max(axis=0).values)
         assert not np.isnan(np.min(centroids))
         return centroids
 
@@ -83,8 +66,7 @@ class KMeans(object):
         old_assignments = [-1]*len(self.df)
         i = 0
         print("Iteration: ", end="")
-        color_generator = self._get_random_point_in_input_range(3, (0,0,0), (1,1,1))
-        cluster_colors = [next(color_generator) for x in range(0, self.num_clusters)]
+        cluster_colors = utils.get_n_points_in_range(self.num_clusters, 3, (0,0,0), (1,1,1))
         while True:
             print("%d..." % i, end="")
             i +=1
