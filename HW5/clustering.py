@@ -9,13 +9,17 @@ class KMeans(object):
         self.num_clusters = num_clusters
         self.df = df
         self.cluster_assignments = None
-        self.centroids = utils.get_n_points_in_range(num_clusters, len(self.df.columns), self.df.min(axis=0).values, self.df.max(axis=0).values)
+        self.centroids = None
+        self._initialize_centroids()
         """
         import random
         for i in range(0, num_clusters):
             pidx = random.randint(0, len(df) - 1)
             self.centroids[i] = df.values[pidx]
         """
+
+    def _initialize_centroids(self):
+        self.centroids = utils.get_n_points_in_range(self.num_clusters, len(self.df.columns), self.df.min(axis=0).values, self.df.max(axis=0).values)
 
     def _get_diff_norm(self, v1, v2, order=2):
         return np.linalg.norm(np.subtract(v1, v2), ord=order)
@@ -89,3 +93,61 @@ class KMeans(object):
                 assert len(self.centroids) == self.num_clusters
                 return self.centroids, self.cluster_assignments
             old_assignments = self.cluster_assignments
+
+
+class KernelKMeans(object):
+    def __init__(self, num_clusters, df, kernel_func=None, kernel_mat=None):
+        if (kernel_mat is not None and kernel_mat is not None) or (kernel_func is None and kernel_mat is None):
+            raise RuntimeError("Must specify only one of kernel function or kernel matrix")
+
+        assert num_clusters > 1 and df is not None
+        self.num_clusters = num_clusters
+        self.df = df
+        self.cluster_assignments = None
+        self.centroids = None
+
+        if kernel_func is not None:
+            self.kernel_mat = self._get_kernel_matrix(df, kernel_func)
+        else:
+            self.kernel_mat = kernel_mat
+        #super(KernelKMeans, self).__init__(num_clusters=num_clusters, df=df)
+
+    def _get_kernel_matrix(self, df, kernel_func):
+        kernel_mat = []
+        for i, xi in enumerate(df.values):
+            kernel_mat.append([])
+            for j, xj in enumerate(df.values):
+                kernel_mat[i].append(kernel_func(xi, xj))
+        return np.array(kernel_mat)
+
+    def _get_d(self):
+        d = np.zeros((len(self.df), self.num_clusters))
+        for j in range(self.num_clusters):
+            gamma = np.array(self.cluster_assignments) == j #*len(self.df)
+            #print(gamma)
+
+            nk = np.sum(gamma)
+            assert not nk == 0
+            nk2 = nk**2
+            #print(self.kernel_mat[gamma][:, gamma])
+            d[:, j] += np.sum(np.outer(gamma, gamma) * self.kernel_mat / nk2)
+            d[:, j] -= 2 * np.sum(gamma * self.kernel_mat, axis=1) / nk
+        return d
+
+    def cluster(self):
+        self.cluster_assignments = []
+        for i in range(0, len(self.df)):
+            self.cluster_assignments.append(np.random.randint(0, self.num_clusters))
+        i = 0
+        print("Iteration: ", end="")
+        while True:
+            i += 1
+            print("%d..." % i, end="")
+            d = self._get_d()
+            old_assignments = self.cluster_assignments
+            self.cluster_assignments = d.argmin(axis=1)
+            if np.array_equal(self.cluster_assignments, old_assignments):
+                print("\nFinished clustering. Final d", d)
+                print("Assignments: ")
+                print(self.cluster_assignments)
+                return self.cluster_assignments

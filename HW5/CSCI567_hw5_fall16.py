@@ -14,7 +14,8 @@ from numpy.random import normal, uniform
 import pandas as pd
 from scipy.io import loadmat
 
-from clustering import KMeans
+from clustering import *
+import utils
 
 DEBUG = False
 OUTPUT_FOLDER = "."
@@ -34,6 +35,8 @@ def generate_dataset(mean, variance, fx, lower = -1, upper = 1, num_samples = 10
 def pretty_print_header(s):
     print(('  ' + s + '  ').center(50, '*'))
 
+def generate_rbf_kernel(sigma):
+    return lambda xi, xj: math.exp( (-utils.get_diff_norm(xi, xj))/(2*sigma**2) )
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if DEBUG else logging.INFO)
@@ -41,6 +44,7 @@ def main():
     df_blob = pd.read_csv("data/hw5_blob.csv", names=col_names)
     df_circle = pd.read_csv("data/hw5_circle.csv", names=col_names)
 
+    """
     #df_circle.plot(kind='scatter', x='f1', y='f2')
     #df_blob.plot(kind='scatter', x='f1', y='f2');
     get_color = lambda x: ((1,0,0), (0,1,0), (0,0,1), (0.5,0.5,0), (0,1,1))[x]
@@ -56,9 +60,40 @@ def main():
             ax.title.set_text("%d clusters" % num_clusters)
 
             for k in range(0, len(centroids)):
-                ax.scatter(centroids[k][0], centroids[k][1], c=get_color(k), marker='x', s=200)
+                ax.scatter(centroids[k][0], centroids[k][1], c=np.add(np.array(get_color(k))*(0.2), (0.2,0.2,0.2)), marker='x', s=200)
 
             print()
+    """
+
+    mean_f1 = df_circle.mean()['f1']
+    mean_f2 = df_circle.mean()['f2']
+    kernel_f = lambda xi, xj: ( (xi[0]-mean_f1)**2 + (xi[1]-mean_f2)**2 ) * ( (xj[0]-mean_f1)**2 + (xj[1]-mean_f2)**2 )
+    print("Running Kernelized K-Means for dataset: %s with 2 clusters" % "hw5_circle")
+    c = KernelKMeans(num_clusters=2, df=df_circle, kernel_func=kernel_f)#generate_rbf_kernel(0.5999))
+    get_color = lambda x: ((1,0,0), (0,1,0), (0,0,1), (0.5,0.5,0), (0,1,1))[x]
+    cluster_assignments = c.cluster()
+    f, ax = plt.subplots(1)
+    df_circle.plot(kind='scatter', x='f1', y='f2', c=[get_color(i) for i in cluster_assignments], ax=ax)
+    #for k in range(0, len(centroids)):
+    #    ax.scatter(centroids[k][0], centroids[k][1], c=np.add(np.array(get_color(k))*(0.2), (0.2,0.2,0.2)), marker='x', s=200)
+    print()
+
+
+    """
+    # Using just feature-mapping, no kernel
+    print("Running Kernelized K-Means for dataset: %s with 2 clusters" % "hw5_circle")
+    df_3 = df_circle.copy(deep=True)
+    df_3.apply(lambda x: x-x.mean())
+    df_3['f3'] = df_3['f2']*df_3['f2'] + df_3['f1']*df_3['f1']
+    c = KMeans(num_clusters=2, df=df_3[['f3']])
+    get_color = lambda x: ((1,0,0), (0,1,0), (0,0,1), (0.5,0.5,0), (0,1,1))[x]
+    centroids, cluster_assignments = c.cluster()
+    f, ax = plt.subplots(1)
+    df_3.plot(kind='scatter', x='f1', y='f2', c=[get_color(i) for i in cluster_assignments], ax=ax)
+    #for k in range(0, len(centroids)):
+    #    ax.scatter(centroids[k][0], centroids[k][1], c=np.add(np.array(get_color(k))*(0.2), (0.2,0.2,0.2)), marker='x', s=200)
+    print()
+    """
     plt.show()
 
 
