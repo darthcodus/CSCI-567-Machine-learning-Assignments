@@ -43,14 +43,13 @@ def main():
 
     #df_circle.plot(kind='scatter', x='f1', y='f2')
     #df_blob.plot(kind='scatter', x='f1', y='f2');
-
     get_color = lambda x: ((1,0,0), (0,1,0), (0,0,1), (0.5,0.5,0), (0,1,1))[x]
     f, axs = plt.subplots(2, 3)
     for i, (dataset_name, dataset_dataframe) in enumerate((("hw5_circle", df_circle), ("hw5_blob", df_blob))):
         print("Running K-Means for dataset: %s" % dataset_name)
         for j, num_clusters in enumerate((2, 3, 5)):
             print("Number of clusters: %d" % num_clusters)
-            c = KMeans(num_clusters=num_clusters, df=df_circle)
+            c = KMeans(num_clusters=num_clusters, df=dataset_dataframe)
             centroids, cluster_assignments = c.cluster()
             ax = ax = axs[i][j]
             dataset_dataframe.plot(kind='scatter', x='f1', y='f2', c=[get_color(i) for i in cluster_assignments], ax=ax)

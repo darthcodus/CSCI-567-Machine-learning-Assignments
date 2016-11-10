@@ -21,14 +21,16 @@ class KMeans(object):
 
         self.cluster_assignments = None
 
-    def _get_random_point_in_input_range(self, minvals=None, maxvals=None):
+    def _get_random_point_in_input_range(self, d=None, minvals=None, maxvals=None):
+        if d is None:
+            d = len(self.df.columns)
         if maxvals is None:
             maxvals = self.df.max(axis=0).values
         if minvals is None:
             minvals = self.df.min(axis=0).values
         while True:
             point = []
-            for f in range(0, len(self.df.columns)):
+            for f in range(0, d):
                 point.append(np.random.uniform(minvals[f], maxvals[f]))
             yield point
 
@@ -75,21 +77,29 @@ class KMeans(object):
         assert not np.isnan(np.min(centroids))
         return centroids
 
-    def cluster(self):
+    def cluster(self, stepwise_plots=False):
         if self.cluster_assignments is not None:
             return self.centroids, self.cluster_assignments
         old_assignments = [-1]*len(self.df)
         i = 0
         print("Iteration: ", end="")
+        color_generator = self._get_random_point_in_input_range(3, (0,0,0), (1,1,1))
+        cluster_colors = [next(color_generator) for x in range(0, self.num_clusters)]
         while True:
             print("%d..." % i, end="")
             i +=1
             self.cluster_assignments = self._get_cluster_assignments(self.centroids)
             self.centroids = self._get_updated_centroids(self.cluster_assignments)
             j = self._get_j(self.centroids, self.cluster_assignments)
-            #print("J: %f" % j)
-            #print("Assignments: ")
-            #print(self.cluster_assignments)
+
+            if stepwise_plots:
+                import matplotlib.pyplot as plt
+                f, axs = plt.subplots(1)
+                self.df.plot(kind='scatter', x='f1', y='f2', c=[cluster_colors[i] for i in self.cluster_assignments], ax=axs)
+                for k in range(0, len(self.centroids)):
+                    axs.scatter(self.centroids[k][0], self.centroids[k][1], c=cluster_colors[k], marker='x', s=200)
+                plt.show()
+
             if np.array_equal(self.cluster_assignments, old_assignments):
                 print("\nFinished clustering. Final j:%f" % j)
                 print("Assignments: ")
