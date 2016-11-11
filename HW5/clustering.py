@@ -1,16 +1,20 @@
+from __future__ import print_function
+import math
+
 import numpy as np
 import pandas as pd
 
 import utils
 
 class KMeans(object):
-    def __init__(self, num_clusters, df):
+    def __init__(self, num_clusters, df, verbose=True):
         assert num_clusters > 1 and df is not None
         self.num_clusters = num_clusters
         self.df = df
         self.cluster_assignments = None
         self.centroids = None
         self._initialize_centroids()
+        self.verbose = verbose
         """
         import random
         for i in range(0, num_clusters):
@@ -69,10 +73,12 @@ class KMeans(object):
             return self.centroids, self.cluster_assignments
         old_assignments = [-1]*len(self.df)
         i = 0
-        print("Iteration: ", end="")
+        if self.verbose:
+            print("Iteration: ", end="")
         cluster_colors = utils.get_n_points_in_range(self.num_clusters, 3, (0,0,0), (1,1,1))
         while True:
-            print("%d..." % i, end="")
+            if self.verbose:
+                print("%d..." % i, end="")
             i +=1
             self.cluster_assignments = self._get_cluster_assignments(self.centroids)
             self.centroids = self._get_updated_centroids(self.cluster_assignments)
@@ -87,9 +93,10 @@ class KMeans(object):
                 plt.show()
 
             if np.array_equal(self.cluster_assignments, old_assignments):
-                print("\nFinished clustering. Final j:%f" % j)
-                print("Assignments: ")
-                print(self.cluster_assignments)
+                if self.verbose:
+                    print("\nFinished clustering. Final j:%f" % j)
+                    print("Assignments: ")
+                    print(self.cluster_assignments)
                 assert len(self.centroids) == self.num_clusters
                 return self.centroids, self.cluster_assignments
             old_assignments = self.cluster_assignments
@@ -103,8 +110,8 @@ class KernelKMeans(object):
         assert num_clusters > 1 and df is not None
         self.num_clusters = num_clusters
         self.df = df
-        self.cluster_assignments = None
-        self.centroids = None
+        #self.cluster_assignments = None
+        #self.centroids = None
 
         if kernel_func is not None:
             self.kernel_mat = self._get_kernel_matrix(df, kernel_func)
@@ -124,30 +131,124 @@ class KernelKMeans(object):
         d = np.zeros((len(self.df), self.num_clusters))
         for j in range(self.num_clusters):
             gamma = np.array(self.cluster_assignments) == j #*len(self.df)
-            #print(gamma)
-
             nk = np.sum(gamma)
             assert not nk == 0
-            nk2 = nk**2
-            #print(self.kernel_mat[gamma][:, gamma])
-            d[:, j] += np.sum(np.outer(gamma, gamma) * self.kernel_mat / nk2)
-            d[:, j] -= 2 * np.sum(gamma * self.kernel_mat, axis=1) / nk
+            d[:, j] += np.sum(np.outer(gamma, gamma) * self.kernel_mat / nk**2) - 2 * np.sum(gamma * self.kernel_mat, axis=1) / nk
         return d
 
     def cluster(self):
         self.cluster_assignments = []
         for i in range(0, len(self.df)):
             self.cluster_assignments.append(np.random.randint(0, self.num_clusters))
-        i = 0
+        i = 1
         print("Iteration: ", end="")
         while True:
-            i += 1
             print("%d..." % i, end="")
+            i += 1
             d = self._get_d()
             old_assignments = self.cluster_assignments
             self.cluster_assignments = d.argmin(axis=1)
             if np.array_equal(self.cluster_assignments, old_assignments):
-                print("\nFinished clustering. Final d", d)
+                print("\nFinished clustering.")# Final d", d)
                 print("Assignments: ")
                 print(self.cluster_assignments)
                 return self.cluster_assignments
+
+
+class GMM(object):
+    def __init__(self, num_clusters, df):
+        assert num_clusters > 1 and df is not None
+        self.num_clusters = num_clusters
+        self.df = df
+        self.centroids = None
+        self.cluster_assignments = []
+        for i in range(0, len(self.df)):
+            self.cluster_assignments.append(np.random.randint(0, self.num_clusters))
+        d = len(self.df.columns)
+        centroids, labels = (KMeans(df=self.df, num_clusters=self.num_clusters, verbose=False)).cluster()
+        self.vars = []
+        for i in range(0, self.num_clusters):
+            self.vars.append(np.identity(d))
+        self.means = centroids
+        self.gamma = None
+
+    def get_gamma(self):
+        if self.gamma is not None:
+            return self.gamma
+        self.gamma = []
+        for i in range(0, len(self.df)):
+            self.gamma.append([])
+            for j in range(0, self.num_clusters):
+                self.gamma[i].append(self.get_gamma_ij(i, j))
+        return self.gamma
+
+    def _update_predictions(self):
+        #wjnew = []
+        #for i in range(0, self.num_clusters):
+        #    wjnew.append(np.sum(np.array(self.cluster_assignments) == i))
+        gamma = self.get_gamma()
+        mnew = []
+        for i in range(0, self.num_clusters):
+            mnew.append(np.zeros(len(self.df.columns)))
+            for j in range(0, len(self.df)):
+                mnew[i] = np.add(mnew[i], gamma[j][i]*self.df.values[j])
+            mnew[i] *= 1/self.n_j(i)
+
+        vnew = []
+        for j in range(0, self.num_clusters):
+            vnew.append(np.zeros( (len(self.df.columns), len(self.df.columns)) ) )
+            for i in range(0, len(self.df)):
+                v = np.subtract(self.df.values[i], mnew[j])[:, np.newaxis]
+                #print(v)
+                vnew[j] = np.add(vnew[j], gamma[i][j] * np.dot(v, v.T))
+            vnew[j] /= self.n_j(j)
+
+        #self.w = wjnew
+        self.means = mnew
+        self.vars = vnew
+        self.gamma = None
+
+    def get_gamma_ij(self, i, j):
+        dnm = 0
+        for l in range(0, self.num_clusters):
+            dnm += utils.multivariate_gaussian(self.df.values[i], self.means[l], self.vars[l])
+        return utils.multivariate_gaussian(self.df.values[i], self.means[j], self.vars[j]) / dnm
+
+    def n_j(self, j):
+        nj = 0
+        for i in range(0, len(self.df)):
+            nj += self.get_gamma()[i][j]
+        return nj
+
+    def get_L(self):
+        n = len(self.df)
+        l = 0
+        for i in range(0, n):
+            t = 0
+            for j in range(0, self.num_clusters):
+                t += utils.multivariate_gaussian(self.df.values[i], self.means[j], self.vars[j]) # *self.w[j
+            l += math.log(t)
+        l /= n
+        return l
+
+    def cluster(self):
+        i = 0
+        self.l = []
+        gammas = []
+        means = []
+        covars = []
+        while i < 5:
+            i+=1
+            print("Iteration: %d" % i)
+            self._update_predictions()
+            gammas.append(self.get_gamma())
+            means.append(self.means)
+            covars.append(self.vars)
+            self.l.append(self.get_L())
+            print("L new: %f" % self.l[-1])
+        bestgammaidx = self.l.index(max(self.l))
+        print("Means:")
+        print(means[bestgammaidx])
+        print("Covariances:")
+        print(covars[bestgammaidx])
+        return np.array(gammas[bestgammaidx]).argmax(axis=1)

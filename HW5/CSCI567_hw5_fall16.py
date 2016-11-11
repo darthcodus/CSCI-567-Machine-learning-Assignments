@@ -44,9 +44,8 @@ def main():
     df_blob = pd.read_csv("data/hw5_blob.csv", names=col_names)
     df_circle = pd.read_csv("data/hw5_circle.csv", names=col_names)
 
-    """
-    #df_circle.plot(kind='scatter', x='f1', y='f2')
-    #df_blob.plot(kind='scatter', x='f1', y='f2');
+    df_circle.plot(kind='scatter', x='f1', y='f2')
+    df_blob.plot(kind='scatter', x='f1', y='f2');
     get_color = lambda x: ((1,0,0), (0,1,0), (0,0,1), (0.5,0.5,0), (0,1,1))[x]
     f, axs = plt.subplots(2, 3)
     for i, (dataset_name, dataset_dataframe) in enumerate((("hw5_circle", df_circle), ("hw5_blob", df_blob))):
@@ -55,7 +54,7 @@ def main():
             print("Number of clusters: %d" % num_clusters)
             c = KMeans(num_clusters=num_clusters, df=dataset_dataframe)
             centroids, cluster_assignments = c.cluster()
-            ax = ax = axs[i][j]
+            ax = axs[i][j]
             dataset_dataframe.plot(kind='scatter', x='f1', y='f2', c=[get_color(i) for i in cluster_assignments], ax=ax)
             ax.title.set_text("%d clusters" % num_clusters)
 
@@ -63,21 +62,31 @@ def main():
                 ax.scatter(centroids[k][0], centroids[k][1], c=np.add(np.array(get_color(k))*(0.2), (0.2,0.2,0.2)), marker='x', s=200)
 
             print()
-    """
 
     mean_f1 = df_circle.mean()['f1']
     mean_f2 = df_circle.mean()['f2']
     kernel_f = lambda xi, xj: ( (xi[0]-mean_f1)**2 + (xi[1]-mean_f2)**2 ) * ( (xj[0]-mean_f1)**2 + (xj[1]-mean_f2)**2 )
     print("Running Kernelized K-Means for dataset: %s with 2 clusters" % "hw5_circle")
     c = KernelKMeans(num_clusters=2, df=df_circle, kernel_func=kernel_f)#generate_rbf_kernel(0.5999))
-    get_color = lambda x: ((1,0,0), (0,1,0), (0,0,1), (0.5,0.5,0), (0,1,1))[x]
     cluster_assignments = c.cluster()
     f, ax = plt.subplots(1)
     df_circle.plot(kind='scatter', x='f1', y='f2', c=[get_color(i) for i in cluster_assignments], ax=ax)
     #for k in range(0, len(centroids)):
     #    ax.scatter(centroids[k][0], centroids[k][1], c=np.add(np.array(get_color(k))*(0.2), (0.2,0.2,0.2)), marker='x', s=200)
+    ax.title.set_text("Kernelized k-means")
     print()
 
+    get_color = lambda x: ((1,0,0), (0,1,0), (0,0,1), (0.5,0.5,0), (0,1,1))[x]
+    print("Running GMM for dataset: %s with 3 clusters" % "hw5_blob")
+    c = GMM(num_clusters=3, df=df_blob)
+    cluster_assignments = c.cluster()
+    f, ax = plt.subplots(1)
+    df_blob.plot(kind='scatter', x='f1', y='f2', c=[get_color(i) for i in cluster_assignments], ax=ax)
+    ax.title.set_text("GMM")
+    f = plt.figure()
+    plt.plot(c.l)
+    f.suptitle("Log likelihood")
+    print()
 
     """
     # Using just feature-mapping, no kernel
