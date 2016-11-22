@@ -36,14 +36,32 @@ def pretty_print_header(s):
 
 def main():
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if DEBUG else logging.INFO)
+
+    #hmm.test_hmm()
+
     transition_probs = [ [0.7, 0.3], [0.4, 0.6] ]
     emission_probs = [[0.4, 0.2, 0.3, 0.1], [0.2, 0.4, 0.1, 0.3]]
     initial_probs = [0.6, 0.4]
-    state_labels = ['s1', 's2']
+    state_labels = ['S1', 'S2']
     emission_labels = ['a', 'c', 'g', 't']
     model = hmm.HMM(initial_probs, transition_probs, emission_probs, state_labels, emission_labels)
-    print(model.calc_prob_output_sequence([c for c in 'accgta']))
-    hmm.test_hmm()
+    emission_seq_labels = [c for c in 'accgta']
+    emission_idx_list = model._get_emission_idx_seq_from_label_seq(emission_seq_labels)
+    print("O/p prob", model.calc_prob_output_sequence(emission_seq_labels))
+    print(model.get_likelihood(5, 'S1', emission_seq_labels))
+    assert math.isclose(model.get_likelihood(5, 'S1', emission_seq_labels), model.alpha_t_helper(5, 0, emission_idx_list)/model.calc_prob_output_sequence(emission_seq_labels))
+    print(model.get_likelihood(5, 'S2', emission_seq_labels))
+    print(model.get_likelihood(3, 'S1', emission_seq_labels))
+    print(model.get_likelihood(3, 'S2', emission_seq_labels))
+    #print(model.alpha_t_helper(5, 1, emission_idx_list))
+
+    pretty_print_header("Viterbi algorith on ACCGTA to get most likely sequence of states:")
+    print(model.get_most_likely_state_seq_from_labels(emission_seq_labels))
+    """
+    for i in range(0,len(emission_probs[0])):
+        print("Emission: %s" % emission_labels[i])
+        print(0.60206796235*emission_probs[0][i] + 0.39793203763*emission_probs[1][i])
+    """
 
 if __name__ == "__main__":
     main()

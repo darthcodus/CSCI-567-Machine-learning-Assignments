@@ -55,7 +55,7 @@ def main():
             c = KMeans(num_clusters=num_clusters, df=dataset_dataframe)
             centroids, cluster_assignments = c.cluster()
             ax = axs[i][j]
-            dataset_dataframe.plot(kind='scatter', x='f1', y='f2', c=[get_color(i) for i in cluster_assignments], ax=ax)
+            dataset_dataframe.plot(kind='scatter', x='f1', y='f2', c=[get_color(x) for x in cluster_assignments], ax=ax)
             ax.title.set_text("%d clusters" % num_clusters)
 
             for k in range(0, len(centroids)):
