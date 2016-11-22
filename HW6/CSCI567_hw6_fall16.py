@@ -49,7 +49,7 @@ def main():
     emission_idx_list = model._get_emission_idx_seq_from_label_seq(emission_seq_labels)
     print("O/p prob", model.calc_prob_output_sequence(emission_seq_labels))
     print(model.get_likelihood(5, 'S1', emission_seq_labels))
-    assert math.isclose(model.get_likelihood(5, 'S1', emission_seq_labels), model.alpha_t_helper(5, 0, emission_idx_list)/model.calc_prob_output_sequence(emission_seq_labels))
+    assert hmm.isclose(model.get_likelihood(5, 'S1', emission_seq_labels), model.alpha_t_helper(5, 0, emission_idx_list)/model.calc_prob_output_sequence(emission_seq_labels))
     print(model.get_likelihood(5, 'S2', emission_seq_labels))
     print(model.get_likelihood(3, 'S1', emission_seq_labels))
     print(model.get_likelihood(3, 'S2', emission_seq_labels))

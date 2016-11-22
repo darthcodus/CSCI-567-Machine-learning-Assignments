@@ -2,6 +2,11 @@ import math
 
 import numpy as np
 
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    if hasattr(math, 'isclose'):
+        return math.isclose(a, b)
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
 class HMM:
     def __init__(self, initial_probs, transition_probs, emission_probs, state_labels, emission_labels):
         # sanity check
@@ -10,13 +15,13 @@ class HMM:
         assert emission_probs is not None
 
         assert len(emission_probs) == len(transition_probs)
-        assert math.isclose(sum(initial_probs), 1.0)
+        assert isclose(sum(initial_probs), 1.0)
         for state_transfer_probs in transition_probs:
             assert len(state_transfer_probs) == len(transition_probs)
-            assert math.isclose(sum(state_transfer_probs), 1.0)
+            assert isclose(sum(state_transfer_probs), 1.0)
         for state_emission_probs in emission_probs:
             assert len(state_emission_probs) == len(emission_probs[0])
-            assert math.isclose(sum(state_emission_probs), 1.0)
+            assert isclose(sum(state_emission_probs), 1.0)
         if state_labels is not None:
             assert len(state_labels) == len(transition_probs)
         if emission_labels is not None:
@@ -146,24 +151,24 @@ def test_hmm():
               , state_labels = ['S1', 'S2']
               , emission_labels = ['R', 'W', 'B'])
     cache = np.full([3, len(hmm.transition_probs)], -1.0)
-    assert math.isclose(hmm.alpha_t_helper(2, 0, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.0162)
-    assert math.isclose(hmm.alpha_t_helper(2, 1, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.01764)
-    assert math.isclose(hmm.alpha_t_helper(1, 1, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.0456)
-    assert math.isclose(hmm.alpha_t_helper(0, 0, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.24)
-    assert math.isclose(hmm.alpha_t_helper(0, 1, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.08)
-    assert math.isclose(hmm.alpha_t_helper(1, 1, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.0456)
+    assert isclose(hmm.alpha_t_helper(2, 0, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.0162)
+    assert isclose(hmm.alpha_t_helper(2, 1, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.01764)
+    assert isclose(hmm.alpha_t_helper(1, 1, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.0456)
+    assert isclose(hmm.alpha_t_helper(0, 0, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.24)
+    assert isclose(hmm.alpha_t_helper(0, 1, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.08)
+    assert isclose(hmm.alpha_t_helper(1, 1, hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B']), cache), 0.0456)
 
     # test beta
     emission_seq = hmm._get_emission_idx_seq_from_label_seq(['R', 'W', 'B', 'B'])
     cache = np.full([len(emission_seq), len(hmm.transition_probs)], -1.0)
-    assert math.isclose(hmm.beta_t_helper(0, 0, emission_seq, cache), 0.0324)
-    assert math.isclose(hmm.beta_t_helper(0, 1, emission_seq, cache), 0.0297)
-    assert math.isclose(hmm.beta_t_helper(1, 0, emission_seq, cache), 0.09)
-    assert math.isclose(hmm.beta_t_helper(1, 1, emission_seq, cache), 0.09)
-    assert math.isclose(hmm.beta_t_helper(2, 0, emission_seq, cache), 0.3)
-    assert math.isclose(hmm.beta_t_helper(2, 1, emission_seq, cache), 0.3)
-    assert math.isclose(hmm.beta_t_helper(3, 0, emission_seq, cache), 1)
-    assert math.isclose(hmm.beta_t_helper(3, 1, emission_seq, cache), 1)
+    assert isclose(hmm.beta_t_helper(0, 0, emission_seq, cache), 0.0324)
+    assert isclose(hmm.beta_t_helper(0, 1, emission_seq, cache), 0.0297)
+    assert isclose(hmm.beta_t_helper(1, 0, emission_seq, cache), 0.09)
+    assert isclose(hmm.beta_t_helper(1, 1, emission_seq, cache), 0.09)
+    assert isclose(hmm.beta_t_helper(2, 0, emission_seq, cache), 0.3)
+    assert isclose(hmm.beta_t_helper(2, 1, emission_seq, cache), 0.3)
+    assert isclose(hmm.beta_t_helper(3, 0, emission_seq, cache), 1)
+    assert isclose(hmm.beta_t_helper(3, 1, emission_seq, cache), 1)
 
     label_seq = ['R', 'W', 'B', 'B']
     emission_seq = hmm._get_emission_idx_seq_from_label_seq(label_seq)
@@ -171,7 +176,7 @@ def test_hmm():
     prob = 0
     for i in range(0, len(hmm.transition_probs)):
         prob += hmm.beta_t_helper(0, i, emission_seq, cache) * hmm.initial_probs[i]*hmm.emission_probs[i][emission_seq[0]]
-    assert math.isclose(prob, hmm.calc_prob_output_sequence(label_seq))
+    assert isclose(prob, hmm.calc_prob_output_sequence(label_seq))
 
     print(hmm.get_likelihood(0, 'S1', label_seq))
     print(hmm.get_likelihood(0, 'S2', label_seq))
